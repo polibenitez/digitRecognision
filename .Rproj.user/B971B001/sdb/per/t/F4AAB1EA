@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "train <- read.csv(\"train.csv\")\n\ntrain <- as.matrix(train)\n\ntrain <- train[sample(1:42000), ]\n\nlabels <- train[,1]\n\ntrain <- train[,-1]\n\nlabels[labels == 0] <- 10\n\ntrain <- train/max(train)\n\nXtrain <-train[1:25200, ]\nYtrain <- labels[1:25200]\nXval <- train[25201:33600, ]\nYval <- labels[25201:33600]\nXtest <- train[33601:42000, ]\nYtest <- labels[33601:4200]\n\nvisualise <- function(imgvec) {\n  n <- length(imgvec)\n  \n  img <- matrix(imgvec, sqrt)\n  \n  imgmelt <- melt(img)\n  \n  ggplot(imgmelt, aes(x= Var1, y = Var2, fill = value)) + geom_raster() + scale_fill_gradient(low - \"white\", high = \"black\")\n\n}\n\n\nhidden_size <- 25\n\nn1 <- 785 * hidden_size\nn2 <- (hidden_size +1) * 10\n\ninit_params <- runif((n1+ n2), min = -0.1, max = 0.1)\n\nmake_thetas <- function(params) {\n  \n  thetas <- vector(\"list\", length = 2)\n  \n  thetas[[1]] <- matrix(params[1:n1], ncol = 785)\n  \n  thetas[[2]] <- matrix(params[(n1 + 1):(n1 + n2)], nrow = 10)\n  \n  thetas \n}\n\nsigmoid <- function(z) {\n  1 / (1 + exp(-z))\n}\n\npredict <- function (params, X) {\n  \n  thetas <- make_thetas(params)\n  \n  Theta1 <- thetas[[1]]\n  Theta2 <- thetas[[2]]\n  \n  m <- nrow(X)\n  \n  A1 <- cbind(rep(1,m),X)\n  \n  Z2 <- A1 %*% t(Theta1)\n  \n  A2 <- cbind(rep(1,m),sigmoid(Z2))\n  \n  Z3 <- A2 %*% t(Theta2)\n  \n  A3 <- sigmoid(Z3)\n  \n  max.col(A3)\n}\n\n\npreds <- predict(init_params, Xval)\n\nmean(preds == Yval)\n\n\ncompute_cost <- function(params, X, y, lambda){\n  thetas <- make_thetas(params)\n  \n  Theta1 <- thetas[[1]]\n  Theta2 <- thetas[[2]]\n  \n  m <- nrow(X)\n  \n  A1 <- cbind(rep(1,m),X)\n  \n  Z2 <- A1 %*% t(Theta1)\n  \n  A2 <- cbind(rep(1,m),sigmoid(Z2))\n  \n  Z3 <- A2 %*% t(Theta2)\n  \n  A3 <- sigmoid(Z3)\n  \n  #Matriz identidad\n  Actual <- diag(10)[y, ]\n  \n  J <- sum(-log(A3)* Actual + -log(1-A3) * (1-Actual)) / m\n  \n  J <- J + lambda(sum(Theta1[, -1] ^ 2) + sum(Theta2[, -1] ^2)) / (2*m)\n  \n  J \n}\n\ncompute_grad <- function(params, X, y, lambda) {\n  thetas <- make_thetas(params)\n  \n  Theta1 <- thetas[[1]]\n  Theta2 <- thetas[[2]]\n  \n  m <- nrow(X)\n  \n  A1 <- cbind(rep(1,m),X)\n  \n  Z2 <- A1 %*% t(Theta1)\n  \n  A2 <- cbind(rep(1,m),sigmoid(Z2))\n  \n  Z3 <- A2 %*% t(Theta2)\n  \n  A3 <- sigmoid(Z3)\n  \n  #Matriz identidad\n  Actual <- diag(10)[y, ]\n  \n  Delta3 <- A3 - Actual\n  \n  Delta2 <- (Delta3 %*% Theta2[, -1]) * sigmoid(Z2) * (1 - sigmoid(Z2))\n  \n  Theta1_grad <- (t(Delta2) %*% A1) /m\n  Theta2_grad <- (t(Delta3) %*% A2) /m\n  \n  Reg1 <- lambda/m * Theta1\n  Reg2 <- lambda/m * Theta2\n  \n  Reg1[, 1] <- 0\n  Reg2[, 1] <- 0\n  \n  Theta1_grad <- Theta1_grad + Reg1\n  Theta2_grad <- Theta2_grad + Reg2\n  \n  c(as.vector(Theta1_grad), as.vector(Theta2_grad))\n  \n  \n}\nlambda <- 1\n\noptim_out <- optim(init_params, \n                   function(p) compute_cost(p,Xtrain, Ytrain, lambda),\n                   function(p) compute_grad(p,Xtrain, Ytrain, lambda),\n                   method = \"L-BFGS-B\",\n                   control = list(maxit = 20))\n\nnn_params <- optim_out[[1]]\n\npreds <- predict(nn_params, Xval)\n\nmean(preds == Yval)\n",
+    "created" : 1488392675863.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1233295303",
+    "id" : "F4AAB1EA",
+    "lastKnownWriteTime" : 1488398954,
+    "last_content_update" : 1488398954171,
+    "path" : "~/Documents/BathMeetUp/script.R",
+    "project_path" : "script.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

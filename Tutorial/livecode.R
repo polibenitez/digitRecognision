@@ -1,0 +1,193 @@
+# Live code from the meetup on 1st March 2017!
+
+train <- read.csv("train.csv")
+
+train <- as.matrix(train)
+
+train <- train[sample(1:42000), ]
+
+labels <- train[, 1]
+
+train <- train[, -1]
+
+labels[labels == 0] <- 10
+
+train <- train / max(train)
+
+Xtrain <- train[1:25200, ]
+ytrain <- labels[1:25200]
+Xval <- train[25201:33600, ]
+yval <- labels[25201:33600]
+Xtest <- train[33601:42000, ]
+ytest <- labels[33601:42000]
+
+
+visualise <- function(imgvec) {
+    
+    n <- length(imgvec)
+    
+    img <- matrix(imgvec, sqrt(n), sqrt(n))
+    
+    imgmelt <- melt(img)
+    
+    ggplot(imgmelt, aes(x = Var1, y = -Var2, fill = value)) +
+        geom_raster() +
+        scale_fill_gradient(low = "white", high = "black")
+}
+
+
+hidden_size <- 25
+
+n1 <- 785 * hidden_size
+n2 <- (hidden_size + 1) * 10
+
+init_params <- runif((n1 + n2), min = -0.1, max = 0.1)
+
+make_thetas <- function(params) {
+    
+    thetas <- vector("list", length = 2)
+    
+    thetas[[1]] <- matrix(params[1:n1], ncol = 785)
+    thetas[[2]] <- matrix(params[(n1 + 1):(n1 + n2)], nrow = 10)
+    
+    thetas
+}
+
+
+
+sigmoid <- function(z) {
+    1 / (1 + exp(-z))
+}
+
+predict <- function(params, X) {
+    
+    thetas <- make_thetas(params)
+    Theta1 <- thetas[[1]]
+    Theta2 <- thetas[[2]]
+    
+    m <- nrow(X)
+    
+    A1 <- cbind(rep(1, m), X)
+    
+    Z2 <- A1 %*% t(Theta1)
+    
+    A2 <- cbind(rep(1, m), sigmoid(Z2))
+    
+    Z3 <- A2 %*% t(Theta2)
+    
+    A3 <- sigmoid(Z3)
+    
+    
+    max.col(A3)
+}
+
+
+preds <- predict(init_params, Xval)
+
+mean(preds == yval)
+
+
+compute_cost <- function(params, X, y, lambda) {
+    
+    thetas <- make_thetas(params)
+    Theta1 <- thetas[[1]]
+    Theta2 <- thetas[[2]]
+    
+    m <- nrow(X)
+    
+    A1 <- cbind(rep(1, m), X)
+    
+    Z2 <- A1 %*% t(Theta1)
+    
+    A2 <- cbind(rep(1, m), sigmoid(Z2))
+    
+    Z3 <- A2 %*% t(Theta2)
+    
+    A3 <- sigmoid(Z3)
+    
+    
+    Actual <- diag(10)[y, ]
+    
+    
+    J <- sum(-log(A3)*Actual + -log(1-A3)*(1-Actual)) / m
+    
+    J <- J + lambda * (sum(Theta1[, -1] ^ 2) + sum(Theta2[, -1] ^ 2)) / (2*m)
+    
+    J
+}
+
+
+compute_grad <- function(params, X, y, lambda) {
+    
+    thetas <- make_thetas(params)
+    Theta1 <- thetas[[1]]
+    Theta2 <- thetas[[2]]
+    
+    m <- nrow(X)
+    
+    A1 <- cbind(rep(1, m), X)
+    
+    Z2 <- A1 %*% t(Theta1)
+    
+    A2 <- cbind(rep(1, m), sigmoid(Z2))
+    
+    Z3 <- A2 %*% t(Theta2)
+    
+    A3 <- sigmoid(Z3)
+    
+    
+    Actual <- diag(10)[y, ]
+    
+    
+    Delta3 <- A3 - Actual
+    
+    Delta2 <- (Delta3 %*% Theta2[, -1]) * sigmoid(Z2) * (1 - sigmoid(Z2))
+    
+    
+    Theta1_grad <- (t(Delta2) %*% A1) / m
+    Theta2_grad <- (t(Delta3) %*% A2) / m
+    
+    Reg1 <- lambda/m * Theta1
+    Reg2 <- lambda/m * Theta2
+    
+    Reg1[, 1] <- 0
+    Reg2[, 1] <- 0
+    
+    Theta1_grad <- Theta1_grad + Reg1
+    Theta2_grad <- Theta2_grad + Reg2
+    
+    c(as.vector(Theta1_grad), as.vector(Theta2_grad))
+}
+
+
+lambda <- 1
+
+optim_out <- optim(init_params,
+                   function(p) compute_cost(p, Xtrain, ytrain, lambda),
+                   function(p) compute_grad(p, Xtrain, ytrain, lambda),
+                   method = "L-BFGS-B",
+                   control = list(maxit = 20))
+
+
+nn_params <- optim_out[[1]]
+
+
+preds <- predict(nn_params, Xval)
+
+mean(preds == yval)
+
+
+# Thanks for coming everyone! Things you can try that we missed out tonight:
+
+#   * Have a look at the "features" we've learned:
+Theta1 <- make_thetas(nn_params)[[1]]
+visualise(Theta1[1, -1])
+visualise(Theta1[13, -1])
+
+#   * Change hyperparameters (lambda and hidden_size) to improve performance
+#     (write a function to try different values and plot accuracy...?)
+
+#   * Enter Kaggle competition: https://www.kaggle.com/c/digit-recognizer/submit
+
+# Contact me: olj23@bath.ac.uk, @owenjonesuob, https://owenjonesuob.github.io
+

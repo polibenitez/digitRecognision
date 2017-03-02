@@ -1,0 +1,10 @@
+guild2016
+
+
+
+ggplot(imgmelt, aes(x= Var1, y = Var2, fill = value)) + geom_raster() + scale_fill_gradient(low - "white", high = "black")
+
+
+olj23@bath.ac.uk
+
+owenjonesuob.github.io
